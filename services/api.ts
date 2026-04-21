@@ -9,6 +9,7 @@ import { Packer } from 'docx';
 import { generateRegistrationDocx } from '@/utils/docxGenerator';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
 
 /** Simulated network latency in milliseconds */
 const MOCK_DELAY_MS = 1500;
@@ -26,14 +27,15 @@ export interface ApiResponse {
  */
 async function downloadDocx(formData: FormData): Promise<void> {
   const doc = generateRegistrationDocx(formData);
-  const blob = await Packer.toBlob(doc);
 
   // Generate filename with timestamp
   const timestamp = new Date().toISOString().slice(0, 10);
-  const filename = `atualizacao-cadastral-${formData.cpf.replace(/\D/g, '')}-${timestamp}.docx`;
+  const cpfClean = formData.cpf.replace(/\D/g, '');
+  const filename = `atualizacao-cadastral-${cpfClean}-${timestamp}.docx`;
 
-  // Web platform: use standard download
-  if (typeof window !== 'undefined' && window.document) {
+  if (Platform.OS === 'web') {
+    // Web platform: use Blob API
+    const blob = await Packer.toBlob(doc);
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -43,22 +45,21 @@ async function downloadDocx(formData: FormData): Promise<void> {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   } else {
-    // Mobile platform: use expo-file-system and expo-sharing
+    // Mobile platform: use ArrayBuffer and base64 encoding
+    const buffer = await Packer.toBuffer(doc);
+
     const fileUri = `${FileSystem.documentDirectory}${filename}`;
 
-    // Convert blob to base64
-    const reader = new FileReader();
-    const base64Promise = new Promise<string>((resolve) => {
-      reader.onload = () => {
-        const base64 = reader.result as string;
-        const base64Data = base64.split(',')[1];
-        resolve(base64Data);
-      };
-      reader.readAsDataURL(blob);
-    });
+    // Convert ArrayBuffer to base64 string
+    let base64String = '';
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < view.byteLength; i++) {
+      base64String += String.fromCharCode(view[i]);
+    }
+    const base64 = btoa(base64String);
 
-    const base64Data = await base64Promise;
-    await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+    // Write file to document directory
+    await FileSystem.writeAsStringAsync(fileUri, base64, {
       encoding: FileSystem.EncodingType.Base64,
     });
 
