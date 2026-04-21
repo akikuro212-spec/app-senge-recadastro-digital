@@ -5,6 +5,10 @@
  */
 
 import { FormData } from '@/types/form';
+import { Packer } from 'docx';
+import { generateRegistrationDocx } from '@/utils/docxGenerator';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 /** Simulated network latency in milliseconds */
 const MOCK_DELAY_MS = 1500;
@@ -14,6 +18,59 @@ export interface ApiResponse {
   success: boolean;
   message: string;
   updatedAt?: string;
+}
+
+/**
+ * Generates a DOCX file from form data and triggers download.
+ * Works on web and mobile platforms.
+ */
+async function downloadDocx(formData: FormData): Promise<void> {
+  const doc = generateRegistrationDocx(formData);
+  const blob = await Packer.toBlob(doc);
+
+  // Generate filename with timestamp
+  const timestamp = new Date().toISOString().slice(0, 10);
+  const filename = `atualizacao-cadastral-${formData.cpf.replace(/\D/g, '')}-${timestamp}.docx`;
+
+  // Web platform: use standard download
+  if (typeof window !== 'undefined' && window.document) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } else {
+    // Mobile platform: use expo-file-system and expo-sharing
+    const fileUri = `${FileSystem.documentDirectory}${filename}`;
+
+    // Convert blob to base64
+    const reader = new FileReader();
+    const base64Promise = new Promise<string>((resolve) => {
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        const base64Data = base64.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.readAsDataURL(blob);
+    });
+
+    const base64Data = await base64Promise;
+    await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    // Share/download the file
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        dialogTitle: 'Salvar Atualização Cadastral',
+        UTI: 'com.microsoft.word.doc',
+      });
+    }
+  }
 }
 
 /**
@@ -42,7 +99,13 @@ export async function submitRegistrationUpdate(formData: FormData): Promise<ApiR
   /* Log payload for development inspection */
   console.log('[MOCK API] PUT /members/update', JSON.stringify(formData, null, 2));
 
-  // Convert to docx and download here
+  // Generate and download DOCX file
+  try {
+    await downloadDocx(formData);
+  } catch (error) {
+    console.error('Error generating DOCX:', error);
+    // Still return success even if download fails
+  }
 
   return {
     success: true,
