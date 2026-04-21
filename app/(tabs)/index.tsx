@@ -25,7 +25,7 @@ import {
 } from '@expo-google-fonts/roboto';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { CircleCheck as CheckCircle, CircleAlert as AlertCircle, Send } from 'lucide-react-native';
+import { CircleCheck as CheckCircle, CircleAlert as AlertCircle, Send, FileText, FileDown } from 'lucide-react-native';
 
 import { COLORS } from '@/constants/colors';
 import { useFormState } from '@/hooks/useFormState';
@@ -36,6 +36,7 @@ import EnderecoSection from '@/components/form/EnderecoSection';
 import DadosProfissionaisSection from '@/components/form/DadosProfissionaisSection';
 import AtividadesSection from '@/components/form/AtividadesSection';
 import DependentsSection from '@/components/form/DependentsSection';
+import { ExportFormat } from '@/services/api';
 
 /* Prevent splash screen from hiding until fonts are loaded */
 SplashScreen.preventAutoHideAsync();
@@ -72,6 +73,7 @@ function FormContent() {
     errors,
     isSubmitting,
     submitResult,
+    exportFormat,
     setField,
     setCPF,
     setRG,
@@ -86,6 +88,7 @@ function FormContent() {
     updateDependent,
     addDependent,
     removeDependent,
+    setExportFormat,
     handleSubmit,
   } = useFormState();
 
@@ -181,6 +184,55 @@ function FormContent() {
                 <Text style={styles.resultText}>{submitResult.message}</Text>
               </View>
             )}
+
+            {/* ── Export format selection ───────────────────────────── */}
+            <View style={styles.formatContainer}>
+              <Text style={styles.formatLabel}>Formato de exportação:</Text>
+              <View style={styles.formatButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.formatBtn,
+                    exportFormat === 'docx' && styles.formatBtnActive,
+                  ]}
+                  onPress={() => setExportFormat('docx')}
+                  activeOpacity={0.7}
+                >
+                  <FileText
+                    size={16}
+                    color={exportFormat === 'docx' ? COLORS.white : COLORS.primaryDark}
+                  />
+                  <Text
+                    style={[
+                      styles.formatBtnText,
+                      exportFormat === 'docx' && styles.formatBtnTextActive,
+                    ]}
+                  >
+                    DOCX
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.formatBtn,
+                    exportFormat === 'pdf' && styles.formatBtnActive,
+                  ]}
+                  onPress={() => setExportFormat('pdf')}
+                  activeOpacity={0.7}
+                >
+                  <FileDown
+                    size={16}
+                    color={exportFormat === 'pdf' ? COLORS.white : COLORS.primaryDark}
+                  />
+                  <Text
+                    style={[
+                      styles.formatBtnText,
+                      exportFormat === 'pdf' && styles.formatBtnTextActive,
+                    ]}
+                  >
+                    PDF
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
             {/* ── Submit button ─────────────────────────────────────── */}
             <TouchableOpacity
@@ -287,5 +339,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
+  },
+  formatContainer: {
+    marginTop: 20,
+    paddingHorizontal: 4,
+  },
+  formatLabel: {
+    fontSize: 12,
+    fontFamily: 'Roboto-Medium',
+    color: COLORS.text,
+    marginBottom: 10,
+  },
+  formatButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  formatBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.primaryDark,
+    backgroundColor: COLORS.white,
+  },
+  formatBtnActive: {
+    backgroundColor: COLORS.primaryDark,
+  },
+  formatBtnText: {
+    fontSize: 13,
+    fontFamily: 'Roboto-Bold',
+    color: COLORS.primaryDark,
+    letterSpacing: 0.3,
+  },
+  formatBtnTextActive: {
+    color: COLORS.white,
   },
 });

@@ -24,7 +24,7 @@ import {
   validateYear,
   validateRequired,
 } from '@/utils/validators';
-import { submitRegistrationUpdate } from '@/services/api';
+import { submitRegistrationUpdate, ExportFormat } from '@/services/api';
 
 /** Initial empty form state */
 const INITIAL_FORM: FormData = {
@@ -66,6 +66,7 @@ export function useFormState() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('docx');
 
   /* ── Generic field update helper ─────────────────────────────────── */
 
@@ -263,10 +264,10 @@ export function useFormState() {
   const handleSubmit = async () => {
     setSubmitResult(null);
     // if (!validate()) return; // testing purposes, remove this
- 
+
     setIsSubmitting(true);
     try {
-      const result = await submitRegistrationUpdate(form);
+      const result = await submitRegistrationUpdate(form, exportFormat);
       setSubmitResult(result);
       if (result.success) setForm(INITIAL_FORM);
     } catch {
@@ -281,6 +282,7 @@ export function useFormState() {
     errors,
     isSubmitting,
     submitResult,
+    exportFormat,
     setField,
     /* Masked setters */
     setCPF,
@@ -298,6 +300,7 @@ export function useFormState() {
     addDependent,
     removeDependent,
     /* Actions */
+    setExportFormat,
     handleSubmit,
   };
 }
