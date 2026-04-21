@@ -5,7 +5,6 @@
  */
 
 import { FormData } from '@/types/form';
-import { generateAndDownloadDocx } from './docGenerator';
 
 /** Simulated network latency in milliseconds */
 const MOCK_DELAY_MS = 1500;
@@ -43,15 +42,7 @@ export async function submitRegistrationUpdate(formData: FormData): Promise<ApiR
   /* Log payload for development inspection */
   console.log('[MOCK API] PUT /members/update', JSON.stringify(formData, null, 2));
 
-  // Convert to docx so the user can sign it at gob.br
-  try {
-    await generateAndDownloadDocx(formData);
-  } catch (error) {
-    console.error('[API] Error generating DOCX document:', error);
-    throw new Error(
-      `Failed to generate document: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
+  // Convert to docx and download here
 
   return {
     success: true,
